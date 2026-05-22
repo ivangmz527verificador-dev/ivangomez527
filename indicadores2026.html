@@ -1,0 +1,513 @@
+<h2 class="sr-only">Dashboard Indicadores 2026 — Análisis de riesgo y cobranza de líneas telefónicas AT&T</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:var(--color-background-tertiary)}
+#app{min-height:60vh}
+/* Loading */
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:1rem}
+.spinner{width:36px;height:36px;border:2.5px solid var(--color-border-tertiary);border-top-color:#378ADD;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-step{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-tertiary);transition:color .3s}
+.load-step.active{color:var(--color-text-secondary)}
+.load-step.done{color:#639922}
+/* Dashboard */
+#dash{display:none;padding:1.25rem;max-width:1380px;margin:0 auto}
+.dash-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.5rem}
+.dash-title{font-size:20px;font-weight:500;color:var(--color-text-primary);display:flex;align-items:center;gap:8px}
+.dash-sub{font-size:12px;color:var(--color-text-secondary);margin-top:3px}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:500}
+.badge-att{background:#E6F1FB;color:#185FA5}
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1.25rem}
+.kpi{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:.9rem 1rem}
+.kpi-lbl{font-size:11px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.kpi-val{font-size:26px;font-weight:500;line-height:1.1;color:var(--color-text-primary)}
+.kpi-sub{font-size:11px;color:var(--color-text-secondary);margin-top:4px}
+.kd .kpi-val{color:#E24B4A}.ks .kpi-val{color:#639922}.ki .kpi-val{color:#378ADD}.kw .kpi-val{color:#BA7517}
+/* Tabs */
+.tabs{display:flex;gap:2px;border-bottom:.5px solid var(--color-border-tertiary);margin-bottom:1.25rem;overflow-x:auto;scrollbar-width:none}
+.tab{padding:7px 14px;font-size:13px;color:var(--color-text-secondary);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s}
+.tab:hover{color:var(--color-text-primary)}.tab.on{color:var(--color-text-primary);border-bottom-color:#378ADD;font-weight:500}
+.tc{display:none}.tc.on{display:block}
+/* Cards/Charts */
+.cg{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:1.25rem}
+.card{background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.1rem}
+.card-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:10px}
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{text-align:left;padding:7px 10px;font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;border-bottom:.5px solid var(--color-border-tertiary)}
+.tbl td{padding:9px 10px;border-bottom:.5px solid var(--color-border-tertiary);color:var(--color-text-primary)}
+.tbl tr:hover td{background:var(--color-background-secondary)}.tbl tr:last-child td{border-bottom:none}
+.tbl .rank{color:var(--color-text-tertiary);font-size:11px}
+/* Bars */
+.rbar-w{display:flex;align-items:center;gap:6px}
+.rbar-bg{flex:1;height:5px;background:var(--color-border-tertiary);border-radius:3px;overflow:hidden}
+.rbar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.rpct{font-size:11.5px;font-weight:500;min-width:38px;text-align:right}
+/* Risk pill */
+.rpill{display:inline-flex;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:500}
+.rh{background:#FCEBEB;color:#A32D2D}.rm{background:#FAEEDA;color:#854F0B}.rl{background:#EAF3DE;color:#3B6D11}
+/* Drill-down */
+.bc{display:flex;align-items:center;gap:5px;font-size:12.5px;margin-bottom:.9rem;flex-wrap:wrap}
+.bc-a{color:#378ADD;cursor:pointer;padding:3px 7px;border-radius:var(--border-radius-md);transition:background .15s}
+.bc-a:hover{background:var(--color-background-secondary)}.bc-cur{color:var(--color-text-secondary)}
+.bc-sep{color:var(--color-text-tertiary)}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.di{background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:.9rem 1rem;cursor:pointer;transition:border-color .15s,transform .1s}
+.di:hover{border-color:var(--color-border-secondary);transform:translateY(-1px)}
+.di-name{font-size:13.5px;font-weight:500;color:var(--color-text-primary);margin-bottom:7px}
+.di-stats{display:flex;gap:10px;font-size:11.5px;color:var(--color-text-secondary);margin-top:6px}
+/* Error */
+#err{display:none;padding:2rem;text-align:center}
+</style>
+
+<div id="app">
+  <div id="loading">
+    <div class="spinner"></div>
+    <p style="font-size:14px;color:var(--color-text-secondary);font-weight:500;margin-bottom:.25rem">Indicadores 2026</p>
+    <div style="display:flex;flex-direction:column;gap:5px;margin-top:.25rem">
+      <div class="load-step active" id="ls1"><i class="ti ti-cloud" aria-hidden="true"></i> Conectando con Google Drive</div>
+      <div class="load-step" id="ls2"><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Leyendo DATOS.xlsx</div>
+      <div class="load-step" id="ls3"><i class="ti ti-cpu" aria-hidden="true"></i> Procesando métricas de riesgo</div>
+      <div class="load-step" id="ls4"><i class="ti ti-chart-bar" aria-hidden="true"></i> Construyendo dashboard</div>
+    </div>
+  </div>
+
+  <div id="err">
+    <i class="ti ti-alert-triangle" style="font-size:28px;color:#E24B4A" aria-hidden="true"></i>
+    <p style="margin-top:.75rem;color:var(--color-text-secondary);font-size:14px" id="err-msg">Error al cargar datos</p>
+    <button onclick="loadData()" style="margin-top:1rem;font-size:13px;padding:6px 14px;cursor:pointer">
+      <i class="ti ti-refresh" aria-hidden="true"></i> Reintentar
+    </button>
+  </div>
+
+  <div id="dash">
+    <div class="dash-hdr">
+      <div>
+        <div class="dash-title">
+          <i class="ti ti-chart-dots" aria-hidden="true"></i>
+          Indicadores 2026
+          <span class="badge badge-att">AT&amp;T</span>
+        </div>
+        <div class="dash-sub" id="dsub">Cargando...</div>
+      </div>
+      <div style="text-align:right;font-size:11.5px;color:var(--color-text-secondary)">
+        <div id="dupd" style="font-weight:500"></div>
+        <div style="color:var(--color-text-tertiary);margin-top:2px">Análisis de riesgo de líneas</div>
+      </div>
+    </div>
+
+    <div class="kpi-grid" id="kpis"></div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab on" onclick="stab('overview',this)">Resumen</button>
+      <button class="tab" onclick="stab('drill',this)">Drill-Down</button>
+      <button class="tab" onclick="stab('equip',this)">Equipos</button>
+      <button class="tab" onclick="stab('pkg',this)">Paquetes</button>
+      <button class="tab" onclick="stab('cob',this)">Cobranza</button>
+      <button class="tab" onclick="stab('rank',this)">Rankings</button>
+      <button class="tab" onclick="stab('trend',this)">Tendencias</button>
+    </div>
+
+    <!-- Overview -->
+    <div class="tc on" id="tc-overview">
+      <div class="cg">
+        <div class="card">
+          <div class="card-title">Distribución de riesgo</div>
+          <div id="leg-donut" style="display:flex;gap:14px;margin-bottom:8px;font-size:11.5px;color:var(--color-text-secondary)"></div>
+          <div style="position:relative;height:200px"><canvas id="c-donut" role="img" aria-label="Donut de riesgo vs sanas">Distribución de riesgo general</canvas></div>
+        </div>
+        <div class="card" style="grid-column:span 2">
+          <div class="card-title">Riesgo por región</div>
+          <div style="position:relative;height:200px"><canvas id="c-regbar" role="img" aria-label="Barras de riesgo por región">Riesgo por región</canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Top 10 sucursales con mayor riesgo</div>
+        <div id="ovw-branches"></div>
+      </div>
+    </div>
+
+    <!-- Drill-Down -->
+    <div class="tc" id="tc-drill">
+      <div class="bc" id="bc"></div>
+      <div id="dc"></div>
+    </div>
+
+    <!-- Equipos -->
+    <div class="tc" id="tc-equip">
+      <div class="cg" style="grid-template-columns:1fr 1fr">
+        <div class="card">
+          <div class="card-title"><i class="ti ti-device-mobile" style="font-size:14px;vertical-align:-2px;margin-right:4px" aria-hidden="true"></i>Más vendidos</div>
+          <div id="eq-sold"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-alert-circle" style="font-size:14px;vertical-align:-2px;margin-right:4px;color:#E24B4A" aria-hidden="true"></i>Mayor riesgo</div>
+          <div id="eq-risk"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Volumen y riesgo por equipo (top 10)</div>
+        <div style="position:relative;height:300px"><canvas id="c-equip" role="img" aria-label="Barras de equipos">Equipos</canvas></div>
+      </div>
+    </div>
+
+    <!-- Paquetes -->
+    <div class="tc" id="tc-pkg">
+      <div class="cg">
+        <div class="card">
+          <div class="card-title">Distribución por paquete</div>
+          <div id="leg-pkg" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;font-size:11.5px;color:var(--color-text-secondary)"></div>
+          <div style="position:relative;height:220px"><canvas id="c-pkg" role="img" aria-label="Donut de paquetes">Paquetes</canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">% Riesgo por paquete</div>
+          <div style="position:relative;height:260px"><canvas id="c-pkgrisk" role="img" aria-label="Barras riesgo por paquete">Riesgo paquetes</canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Detalle por paquete</div>
+        <div id="pkg-tbl"></div>
+      </div>
+    </div>
+
+    <!-- Cobranza -->
+    <div class="tc" id="tc-cob">
+      <div class="kpi-grid" id="cob-kpis"></div>
+      <div class="cg">
+        <div class="card">
+          <div class="card-title">Estado de cobranza</div>
+          <div id="leg-cob" style="display:flex;gap:14px;margin-bottom:8px;font-size:11.5px;color:var(--color-text-secondary)"></div>
+          <div style="position:relative;height:200px"><canvas id="c-cob" role="img" aria-label="Donut cobranza">Cobranza</canvas></div>
+        </div>
+        <div class="card" style="grid-column:span 2">
+          <div class="card-title"><i class="ti ti-medal" style="font-size:14px;vertical-align:-2px;margin-right:4px;color:#639922" aria-hidden="true"></i>Mejores ejecutivos de cobranza</div>
+          <div id="cob-top"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-alert-triangle" style="font-size:14px;vertical-align:-2px;margin-right:4px;color:#E24B4A" aria-hidden="true"></i>Ejecutivos con menor recuperación</div>
+        <div id="cob-worst"></div>
+      </div>
+    </div>
+
+    <!-- Rankings -->
+    <div class="tc" id="tc-rank">
+      <div class="cg">
+        <div class="card">
+          <div class="card-title">Top sucursales · mayor riesgo</div>
+          <div id="rk-branch"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Top ejecutivos · mayor riesgo</div>
+          <div id="rk-exec"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tendencias -->
+    <div class="tc" id="tc-trend">
+      <div class="cg" style="grid-template-columns:1fr">
+        <div class="card">
+          <div class="card-title">Tendencia mensual de riesgo</div>
+          <div style="position:relative;height:260px"><canvas id="c-trend" role="img" aria-label="Línea de tendencia mensual">Tendencia</canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Proyección (próximos 3 meses)</div>
+          <div id="leg-fore" style="display:flex;gap:14px;margin-bottom:8px;font-size:11.5px;color:var(--color-text-secondary)"></div>
+          <div style="position:relative;height:220px"><canvas id="c-fore" role="img" aria-label="Proyección de riesgo">Proyección</canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+let G=null, DS={lvl:'r',reg:null,brn:null};
+const CH={};
+const PCOLS=['#378ADD','#639922','#E24B4A','#BA7517','#534AB7','#D85A30','#0F6E56','#D4537E','#888780','#1D9E75'];
+
+function stab(id,el){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.tc').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('tc-'+id).classList.add('on');
+  if(id==='drill') rdrill();
+}
+
+function rc(p){return p>=40?'#E24B4A':p>=20?'#BA7517':'#639922'}
+function rcls(p){return p>=40?'rh':p>=20?'rm':'rl'}
+function fn(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return Math.round(n).toLocaleString()}
+function rbar(p){const c=rc(p);return`<div class="rbar-w"><div class="rbar-bg"><div class="rbar-fill" style="width:${Math.min(p,100).toFixed(1)}%;background:${c}"></div></div><span class="rpct" style="color:${c}">${p.toFixed(1)}%</span></div>`}
+function chk(id){if(CH[id]){CH[id].destroy();delete CH[id]}}
+
+function rkpis(d){
+  const rp=(d.riskLines/d.totalLines*100)||0;
+  document.getElementById('kpis').innerHTML=`
+  <div class="kpi"><div class="kpi-lbl">Total líneas</div><div class="kpi-val">${fn(d.totalLines)}</div><div class="kpi-sub">${d.regions?.length||0} regiones</div></div>
+  <div class="kpi kd"><div class="kpi-lbl">En riesgo</div><div class="kpi-val">${fn(d.riskLines)}</div><div class="kpi-sub">${rbar(rp)}</div></div>
+  <div class="kpi ks"><div class="kpi-lbl">Líneas sanas</div><div class="kpi-val">${fn(d.totalLines-d.riskLines)}</div><div class="kpi-sub">${rbar(100-rp)}</div></div>
+  <div class="kpi ki"><div class="kpi-lbl">Recuperadas</div><div class="kpi-val">${fn(d.collections?.recovered||0)}</div><div class="kpi-sub">${rbar(d.collections?.recoveryPct||0)}</div></div>`;
+}
+
+function rovw(d){
+  const rp=(d.riskLines/d.totalLines*100)||0;
+  chk('donut');
+  CH.donut=new Chart(document.getElementById('c-donut'),{
+    type:'doughnut',
+    data:{labels:['Riesgo','Sanas'],datasets:[{data:[d.riskLines,d.totalLines-d.riskLines],backgroundColor:['#E24B4A','#639922'],borderWidth:0,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false}}}
+  });
+  document.getElementById('leg-donut').innerHTML=
+    `<span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#E24B4A"></span>Riesgo ${rp.toFixed(1)}%</span>
+     <span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#639922"></span>Sanas ${(100-rp).toFixed(1)}%</span>`;
+
+  const regs=[...(d.regions||[])].sort((a,b)=>b.riskPct-a.riskPct).slice(0,12);
+  chk('regbar');
+  const h=Math.max(200,regs.length*36+60);
+  document.getElementById('c-regbar').parentElement.style.height=h+'px';
+  CH.regbar=new Chart(document.getElementById('c-regbar'),{
+    type:'bar',
+    data:{labels:regs.map(r=>r.name),
+      datasets:[
+        {label:'Sanas',data:regs.map(r=>r.total-r.risk),backgroundColor:'#639922',stack:'s'},
+        {label:'Riesgo',data:regs.map(r=>r.risk),backgroundColor:'#E24B4A',stack:'s'}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false}},
+      scales:{x:{stacked:true,grid:{color:'rgba(128,128,128,.1)'},ticks:{font:{size:10}}},
+              y:{stacked:true,ticks:{font:{size:10}}}}}
+  });
+
+  // Top branches
+  const all=[];
+  (d.regions||[]).forEach(r=>(r.branches||[]).forEach(b=>all.push({...b,rn:r.name})));
+  all.sort((a,b)=>b.riskPct-a.riskPct);
+  let h2=`<table class="tbl"><thead><tr><th>#</th><th>Sucursal</th><th>Región</th><th>Total</th><th>Riesgo</th><th>% Riesgo</th></tr></thead><tbody>`;
+  all.slice(0,10).forEach((b,i)=>{h2+=`<tr><td class="rank">${i+1}</td><td style="font-weight:${i<3?500:400}">${b.name}</td><td style="color:var(--color-text-secondary)">${b.rn}</td><td>${fn(b.total)}</td><td style="color:#E24B4A;font-weight:500">${fn(b.risk)}</td><td>${rbar(b.riskPct)}</td></tr>`});
+  document.getElementById('ovw-branches').innerHTML=h2+'</tbody></table>';
+}
+
+function rdrill(){
+  if(!G)return;
+  let bc='',ct='';
+  if(DS.lvl==='r'){
+    bc='<span class="bc-cur">Todas las regiones</span>';
+    ct=`<div class="dgrid">${G.regions.map(r=>`<div class="di" onclick="dToR('${esc(r.name)}')"><div class="di-name">${r.name}</div>${rbar(r.riskPct)}<div class="di-stats"><span>Total: <b>${fn(r.total)}</b></span><span style="color:#E24B4A">Riesgo: <b>${fn(r.risk)}</b></span><span>${r.branches?.length||0} sucursales</span></div></div>`).join('')}</div>`;
+  } else if(DS.lvl==='b'){
+    const reg=G.regions.find(r=>r.name===DS.reg);
+    bc=`<span class="bc-a" onclick="dReset()">Todas las regiones</span><span class="bc-sep">›</span><span class="bc-cur">${DS.reg}</span>`;
+    ct=`<div class="dgrid">${(reg?.branches||[]).map(b=>`<div class="di" onclick="dToB('${esc(b.name)}')"><div class="di-name">${b.name}</div>${rbar(b.riskPct)}<div class="di-stats"><span>Total: <b>${fn(b.total)}</b></span><span style="color:#E24B4A">Riesgo: <b>${fn(b.risk)}</b></span><span>${b.executives?.length||0} ejecutivos</span></div></div>`).join('')}</div>`;
+  } else {
+    const reg=G.regions.find(r=>r.name===DS.reg);
+    const brn=reg?.branches?.find(b=>b.name===DS.brn);
+    bc=`<span class="bc-a" onclick="dReset()">Todas las regiones</span><span class="bc-sep">›</span><span class="bc-a" onclick="dToR('${esc(DS.reg)}')">${DS.reg}</span><span class="bc-sep">›</span><span class="bc-cur">${DS.brn}</span>`;
+    const exs=(brn?.executives||[]).sort((a,b)=>b.riskPct-a.riskPct);
+    let t=`<div class="card"><table class="tbl"><thead><tr><th>#</th><th>Ejecutivo</th><th>Total</th><th>Riesgo</th><th>% Riesgo</th><th>Recuperadas</th></tr></thead><tbody>`;
+    exs.forEach((e,i)=>{t+=`<tr><td class="rank">${i+1}</td><td style="font-weight:500">${e.name}</td><td>${fn(e.total)}</td><td style="color:#E24B4A">${fn(e.risk)}</td><td>${rbar(e.riskPct)}</td><td style="color:#378ADD">${fn(e.recovered||0)} <span style="color:var(--color-text-tertiary);font-size:10px">(${(e.recoveryPct||0).toFixed(1)}%)</span></td></tr>`});
+    ct=t+'</tbody></table></div>';
+  }
+  document.getElementById('bc').innerHTML=bc;
+  document.getElementById('dc').innerHTML=ct;
+}
+
+function esc(s){return(s||'').replace(/'/g,"\\'")}
+function dReset(){DS={lvl:'r',reg:null,brn:null};rdrill()}
+function dToR(n){DS={lvl:'b',reg:n,brn:null};rdrill()}
+function dToB(n){DS.lvl='e';DS.brn=n;rdrill()}
+
+function requip(eq){
+  const bySold=[...eq].sort((a,b)=>b.total-a.total).slice(0,10);
+  const byRisk=[...eq].filter(e=>e.name!=='SERVICIO').sort((a,b)=>b.riskPct-a.riskPct).slice(0,10);
+  let s='',r='';
+  bySold.forEach((e,i)=>{s+=`<div style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:.5px solid var(--color-border-tertiary)"><span style="font-size:10.5px;color:var(--color-text-tertiary);min-width:16px">${i+1}</span><span style="flex:1;font-size:12.5px;font-weight:${i<3?500:400}">${e.name}</span><span style="font-size:12px;color:var(--color-text-secondary)">${fn(e.total)}</span></div>`});
+  byRisk.forEach((e,i)=>{r+=`<div style="display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:.5px solid var(--color-border-tertiary)"><span style="font-size:10.5px;color:var(--color-text-tertiary);min-width:16px">${i+1}</span><span style="flex:1;font-size:12.5px">${e.name}</span><span class="rpill ${rcls(e.riskPct)}">${e.riskPct.toFixed(1)}%</span></div>`});
+  document.getElementById('eq-sold').innerHTML=s;
+  document.getElementById('eq-risk').innerHTML=r;
+  const top8=[...eq].sort((a,b)=>b.total-a.total).slice(0,8);
+  chk('equip');
+  CH.equip=new Chart(document.getElementById('c-equip'),{
+    type:'bar',
+    data:{labels:top8.map(e=>e.name.length>18?e.name.slice(0,18)+'…':e.name),
+      datasets:[
+        {label:'Sanas',data:top8.map(e=>e.total-e.risk),backgroundColor:'#639922',stack:'s'},
+        {label:'Riesgo',data:top8.map(e=>e.risk),backgroundColor:'#E24B4A',stack:'s'}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{stacked:true,ticks:{font:{size:9.5},maxRotation:35},grid:{color:'rgba(128,128,128,.1)'}},y:{stacked:true,ticks:{font:{size:10}}}}}
+  });
+}
+
+function rpkg(pkgs){
+  const sorted=[...pkgs].sort((a,b)=>b.total-a.total);
+  chk('pkg');
+  CH.pkg=new Chart(document.getElementById('c-pkg'),{
+    type:'doughnut',
+    data:{labels:sorted.map(p=>p.name),datasets:[{data:sorted.map(p=>p.total),backgroundColor:PCOLS,borderWidth:0,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}
+  });
+  const totalPkg=sorted.reduce((a,p)=>a+p.total,0);
+  document.getElementById('leg-pkg').innerHTML=sorted.map((p,i)=>`<span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:${PCOLS[i%PCOLS.length]}"></span><span style="font-size:11px">${p.name} ${totalPkg>0?(p.total/totalPkg*100).toFixed(0):0}%</span></span>`).join('');
+  const byRisk=[...pkgs].sort((a,b)=>b.riskPct-a.riskPct);
+  const h=Math.max(200,byRisk.length*32+60);
+  document.getElementById('c-pkgrisk').parentElement.style.height=h+'px';
+  chk('pkgrisk');
+  CH.pkgrisk=new Chart(document.getElementById('c-pkgrisk'),{
+    type:'bar',
+    data:{labels:byRisk.map(p=>p.name),datasets:[{data:byRisk.map(p=>p.riskPct),backgroundColor:byRisk.map(p=>rc(p.riskPct)),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false}},
+      scales:{x:{max:100,ticks:{callback:v=>v+'%',font:{size:10}},grid:{color:'rgba(128,128,128,.1)'}},y:{ticks:{font:{size:10}}}}}
+  });
+  let t=`<table class="tbl"><thead><tr><th>Paquete</th><th>Total</th><th>En riesgo</th><th>% Riesgo</th></tr></thead><tbody>`;
+  sorted.forEach(p=>{t+=`<tr><td style="font-weight:500">${p.name}</td><td>${fn(p.total)}</td><td style="color:#E24B4A">${fn(p.risk)}</td><td>${rbar(p.riskPct)}</td></tr>`});
+  document.getElementById('pkg-tbl').innerHTML=t+'</tbody></table>';
+}
+
+function rcob(c){
+  document.getElementById('cob-kpis').innerHTML=`
+  <div class="kpi"><div class="kpi-lbl">Total suspendidas</div><div class="kpi-val">${fn(c.totalSuspended||0)}</div></div>
+  <div class="kpi ki"><div class="kpi-lbl">Recuperadas</div><div class="kpi-val">${fn(c.recovered||0)}</div></div>
+  <div class="kpi ks"><div class="kpi-lbl">% Recuperación</div><div class="kpi-val">${(c.recoveryPct||0).toFixed(1)}%</div><div class="kpi-sub">${rbar(c.recoveryPct||0)}</div></div>`;
+  chk('cob');
+  CH.cob=new Chart(document.getElementById('c-cob'),{
+    type:'doughnut',
+    data:{labels:['Recuperadas','Sin recuperar'],datasets:[{data:[c.recovered||0,(c.totalSuspended||0)-(c.recovered||0)],backgroundColor:['#378ADD','#E24B4A'],borderWidth:0,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'70%',plugins:{legend:{display:false}}}
+  });
+  document.getElementById('leg-cob').innerHTML=
+    `<span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#378ADD"></span>Recuperadas</span>
+     <span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#E24B4A"></span>Sin recuperar</span>`;
+  let tt=`<table class="tbl"><thead><tr><th>#</th><th>Ejecutivo</th><th>Sucursal</th><th>Región</th><th>Recuperadas</th><th>% Recup.</th></tr></thead><tbody>`;
+  (c.topRecoverers||[]).slice(0,10).forEach((e,i)=>{tt+=`<tr><td class="rank">${i+1}</td><td style="font-weight:500">${e.name}</td><td style="color:var(--color-text-secondary)">${e.branch||'-'}</td><td style="color:var(--color-text-secondary)">${e.region||'-'}</td><td style="color:#378ADD;font-weight:500">${fn(e.recovered||0)}</td><td>${rbar(e.recoveryPct||0)}</td></tr>`});
+  document.getElementById('cob-top').innerHTML=tt+'</tbody></table>';
+  let wt=`<table class="tbl"><thead><tr><th>#</th><th>Ejecutivo</th><th>Sucursal</th><th>Total susp.</th><th>Recuperadas</th></tr></thead><tbody>`;
+  (c.worstRecoverers||[]).slice(0,10).forEach((e,i)=>{wt+=`<tr><td class="rank">${i+1}</td><td style="font-weight:500">${e.name}</td><td style="color:var(--color-text-secondary)">${e.branch||'-'}</td><td>${fn(e.total||0)}</td><td style="color:#E24B4A">${fn(e.recovered||0)}</td></tr>`});
+  document.getElementById('cob-worst').innerHTML=wt+'</tbody></table>';
+}
+
+function rrank(regs){
+  const ab=[],ae=[];
+  regs.forEach(r=>(r.branches||[]).forEach(b=>{ab.push({...b,rn:r.name});(b.executives||[]).forEach(e=>ae.push({...e,bn:b.name,rn:r.name}))}));
+  ab.sort((a,b)=>b.riskPct-a.riskPct);ae.sort((a,b)=>b.riskPct-a.riskPct);
+  let bt=`<table class="tbl"><thead><tr><th>#</th><th>Sucursal</th><th>Región</th><th>Total</th><th>Riesgo</th><th>% Riesgo</th></tr></thead><tbody>`;
+  ab.slice(0,15).forEach((b,i)=>{bt+=`<tr><td class="rank">${i+1}</td><td style="font-weight:${i<3?500:400}">${b.name}</td><td style="color:var(--color-text-secondary)">${b.rn}</td><td>${fn(b.total)}</td><td style="color:#E24B4A">${fn(b.risk)}</td><td>${rbar(b.riskPct)}</td></tr>`});
+  document.getElementById('rk-branch').innerHTML=bt+'</tbody></table>';
+  let et=`<table class="tbl"><thead><tr><th>#</th><th>Ejecutivo</th><th>Sucursal</th><th>Región</th><th>Total</th><th>% Riesgo</th></tr></thead><tbody>`;
+  ae.slice(0,15).forEach((e,i)=>{et+=`<tr><td class="rank">${i+1}</td><td style="font-weight:${i<3?500:400}">${e.name}</td><td style="color:var(--color-text-secondary)">${e.bn}</td><td style="color:var(--color-text-secondary)">${e.rn}</td><td>${fn(e.total)}</td><td>${rbar(e.riskPct)}</td></tr>`});
+  document.getElementById('rk-exec').innerHTML=et+'</tbody></table>';
+}
+
+function rtrend(tr){
+  if(!tr||!tr.length){document.getElementById('tc-trend').innerHTML='<div style="padding:2rem;text-align:center;color:var(--color-text-secondary)">No hay datos de tendencia disponibles</div>';return}
+  const months=tr.map(t=>t.month);
+  const rps=tr.map(t=>t.riskPct);
+  chk('trend');
+  CH.trend=new Chart(document.getElementById('c-trend'),{
+    type:'line',
+    data:{labels:months,datasets:[{label:'% Riesgo',data:rps,borderColor:'#E24B4A',backgroundColor:'rgba(226,75,74,.08)',fill:true,tension:.35,pointRadius:4,pointBackgroundColor:'#E24B4A'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:10}},grid:{color:'rgba(128,128,128,.1)'}},y:{min:0,max:100,ticks:{callback:v=>v+'%',font:{size:10}},grid:{color:'rgba(128,128,128,.1)'}}}}
+  });
+  // Linear forecast
+  const n=rps.length,xm=(n-1)/2,ym=rps.reduce((a,b)=>a+b,0)/n;
+  let num=0,den=0;rps.forEach((y,x)=>{num+=(x-xm)*(y-ym);den+=(x-xm)**2});
+  const sl=den?num/den:0,ic=ym-sl*xm;
+  const fv=[1,2,3].map(d=>Math.max(0,Math.min(100,+(ic+sl*(n+d-1)).toFixed(1))));
+  const fm=['Proy. +1','Proy. +2','Proy. +3'];
+  const trend=sl>0.5?'↑ Riesgo en aumento':'↓ Riesgo en descenso';
+  document.getElementById('leg-fore').innerHTML=
+    `<span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#E24B4A"></span>Real</span>
+     <span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#BA7517"></span>Proyección</span>
+     <span style="font-size:11px;font-weight:500;color:${sl>0?'#E24B4A':'#639922'}">${trend}</span>`;
+  chk('fore');
+  CH.fore=new Chart(document.getElementById('c-fore'),{
+    type:'line',
+    data:{labels:[...months,...fm],
+      datasets:[
+        {label:'Real',data:[...rps,...fm.map(()=>null)],borderColor:'#E24B4A',tension:.35,pointRadius:3,pointBackgroundColor:'#E24B4A'},
+        {label:'Proyección',data:[...months.map((_,i)=>i===months.length-1?rps[i]:null),...fv],borderColor:'#BA7517',borderDash:[5,5],tension:.35,pointRadius:3,pointBackgroundColor:'#BA7517'}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:10}},grid:{color:'rgba(128,128,128,.1)'}},y:{min:0,max:100,ticks:{callback:v=>v+'%',font:{size:10}},grid:{color:'rgba(128,128,128,.1)'}}}}
+  });
+}
+
+function render(d){
+  G=d;
+  document.getElementById('loading').style.display='none';
+  document.getElementById('dash').style.display='block';
+  const tb=(d.regions||[]).reduce((a,r)=>a+(r.branches?.length||0),0);
+  document.getElementById('dsub').textContent=`${fn(d.totalLines)} líneas · ${d.regions?.length||0} regiones · ${tb} sucursales`;
+  document.getElementById('dupd').textContent=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+  rkpis(d);rovw(d);requip(d.equipment||[]);rpkg(d.packages||[]);
+  rcob(d.collections||{});rrank(d.regions||[]);rtrend(d.monthlyTrend||[]);
+}
+
+function setLS(i,state){
+  const el=document.getElementById('ls'+i);
+  if(!el)return;
+  el.className='load-step '+(state==='active'?'active':state==='done'?'done':'');
+}
+
+async function loadData(){
+  document.getElementById('loading').style.display='flex';
+  document.getElementById('dash').style.display='none';
+  document.getElementById('err').style.display='none';
+  [1,2,3,4].forEach(i=>setLS(i,''));setLS(1,'active');
+
+  try{
+    setTimeout(()=>{setLS(1,'done');setLS(2,'active')},800);
+
+    const prompt=`Lee y analiza el archivo de Google Drive con ID: 1Zqe5XXVM89Uk2kCl0qBhcJu9_5FCJcWq (DATOS.xlsx).
+
+Las columnas del archivo son: #, Número de documento, Fecha de contabilización, ID Transaccion, Paquete, Tipo Equipo, Cuenta, Contrato, ContratoAVS, Nombre, No. Celular, ESN, Equipo, Descripcion, Fecha de activacion, Plazo, Renta, FolioVerificacion, Addon Ctrl, Addon Proteq, ADDON FINES, Vendedor, Tipo, Sucursal, ANALISTA, Cod Cliente, Nombre Cliente, Fecha de Equipo Entregado, RFC, MES, PRIMER ESTATUS, USO DE LINEA, ADEUDO, MONTO ADEUDO, FECHA DE VENCIMIENTO, TELEFONO FIJO, SEGUNDO ESTATUS, ACT/USO DE LA LINEA, REGION.
+
+REGLAS DE NEGOCIO:
+1. RIESGO: línea está EN RIESGO si PRIMER ESTATUS contiene "Suspendida","Desactiva","Desactivada" O si USO DE LINEA contiene "Sin consumos"
+2. COBRANZA EFECTIVA: PRIMER ESTATUS="Suspendida" Y SEGUNDO ESTATUS="Activa" (recuperación)
+3. JERARQUÍA: REGION → Sucursal → Vendedor (el Vendedor es el ejecutivo de ventas)
+4. LIMPIEZA DE EQUIPOS en columna Descripcion:
+   - Si contiene "SIM CARD","EQUIPO PROPIO","ESIMCARD" → nombre="SERVICIO"
+   - Para el resto: eliminar colores (NEGRO,BLANCO,AZUL,VERDE,GRIS,DORADO,TITANIO,NARANJA,COSMICO,PLATA,MORADO,CAFE,PURPURA,LILA,ROSA,MIDNIGHT,STARLIGHT,DESERT,NATURAL,BLUE,BLACK,WHITE), capacidades (128GB,256GB,512GB,1TB,64GB,32GB,16GB), y texto del carrier (ATT,AT&T,BDL,HEADPHONE,AUDIFONO,QR,DISPLAY). Queda solo marca+modelo.
+
+Devuelve SOLO el siguiente JSON (sin markdown, sin texto extra):
+{"totalLines":0,"riskLines":0,"riskPct":0.0,"healthyPct":0.0,"regions":[{"name":"","total":0,"risk":0,"riskPct":0.0,"recovered":0,"recoveryPct":0.0,"branches":[{"name":"","total":0,"risk":0,"riskPct":0.0,"recovered":0,"recoveryPct":0.0,"executives":[{"name":"","total":0,"risk":0,"riskPct":0.0,"recovered":0,"recoveryPct":0.0}]}]}],"packages":[{"name":"","total":0,"risk":0,"riskPct":0.0}],"equipment":[{"name":"","total":0,"risk":0,"riskPct":0.0}],"monthlyTrend":[{"month":"","total":0,"risk":0,"riskPct":0.0}],"collections":{"totalSuspended":0,"recovered":0,"recoveryPct":0.0,"topRecoverers":[{"name":"","branch":"","region":"","recovered":0,"total":0,"recoveryPct":0.0}],"worstRecoverers":[{"name":"","branch":"","region":"","recovered":0,"total":0,"recoveryPct":0.0}]}}`;
+
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:8000,
+        system:'Eres un analista de datos experto en telecomunicaciones. Lee el archivo de Google Drive y procesa todos los datos. Responde ÚNICAMENTE con un objeto JSON válido, sin markdown, sin bloques de código, sin texto adicional. Solo el JSON puro.',
+        messages:[{role:'user',content:prompt}],
+        mcp_servers:[{type:'url',url:'https://drivemcp.googleapis.com/mcp/v1',name:'google-drive'}]
+      })
+    });
+
+    if(!res.ok){const e=await res.text();throw new Error('API '+res.status+': '+e.slice(0,200))}
+    setLS(2,'done');setLS(3,'active');
+
+    const api=await res.json();
+    let txt='';
+    for(const b of(api.content||[])){if(b.type==='text')txt+=b.text;if(b.type==='mcp_tool_result'&&b.content?.[0]?.text)txt+='';}
+    txt=txt.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+    const s=txt.indexOf('{'),e2=txt.lastIndexOf('}');
+    if(s<0||e2<0)throw new Error('No se encontró JSON en la respuesta. Respuesta recibida: '+txt.slice(0,300));
+    const data=JSON.parse(txt.slice(s,e2+1));
+    setLS(3,'done');setLS(4,'active');
+    setTimeout(()=>{setLS(4,'done');render(data)},300);
+
+  }catch(err){
+    console.error(err);
+    document.getElementById('loading').style.display='none';
+    document.getElementById('err').style.display='block';
+    document.getElementById('err-msg').textContent='Error: '+err.message;
+  }
+}
+
+loadData();
+</script>
